@@ -66,8 +66,25 @@ cd /opt/mobileagentlivelink
 # 上传项目文件（使用 scp 或 git clone）
 # 方式1: 使用 git（如果项目在 GitHub）
 # 注意: git clone 会创建项目名称的子目录，需要先进入该目录
-git clone https://github.com/flashpoint493/MobileAgentLivelink.git
-cd MobileAgentLivelink
+
+# === 首次部署：克隆仓库 ===
+# git clone https://github.com/flashpoint493/MobileAgentLivelink.git
+# cd MobileAgentLivelink
+
+# === 如果已经 clone 过，更新到最新版本 ===
+# cd MobileAgentLivelink
+# git pull
+
+# 或者使用条件判断（自动检测）：
+if [ -d "MobileAgentLivelink" ]; then
+    echo "仓库已存在，更新到最新版本..."
+    cd MobileAgentLivelink
+    git pull
+else
+    echo "首次克隆仓库..."
+    git clone https://github.com/flashpoint493/MobileAgentLivelink.git
+    cd MobileAgentLivelink
+fi
 
 # 方式2: 使用 scp 上传（推荐，更简单）
 # 在本地执行: scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
@@ -76,13 +93,26 @@ cd MobileAgentLivelink
 # 进入中转服务器目录
 cd relay-server
 
-# 创建虚拟环境
-python3 -m venv venv
+# 创建虚拟环境（如果不存在）
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+fi
+
 source venv/bin/activate
+
+# 更新 pip（推荐）
+pip install --upgrade pip
 
 # 安装依赖
 pip install -r requirements.txt
 ```
+
+**重要提示**：
+
+- **首次部署**：如果目录不存在，使用 `git clone` 克隆仓库
+- **更新已有仓库**：如果目录已存在，使用 `git pull` 更新到最新版本
+- **虚拟环境**：如果虚拟环境已存在，直接激活即可，无需重新创建
+- **依赖更新**：每次更新代码后，建议运行 `pip install -r requirements.txt` 确保依赖是最新的
 
 ### 3. 配置服务器
 
@@ -368,8 +398,54 @@ sudo systemctl status mobileagent-relay
 
 ## 客户端配置更新
 
-### PC 客户端配置
+### Web 客户端更新
 
+**Web 客户端是单文件 HTML**，使用方式有两种：
+
+#### 方式 1：本地文件（推荐）
+
+直接下载 `web-client.html` 文件到本地，用浏览器打开即可：
+
+```bash
+# 从 GitHub 下载最新版本
+# 访问: https://github.com/flashpoint493/MobileAgentLivelink/blob/master/web-client.html
+# 点击 "Raw" 按钮，然后右键保存为 web-client.html
+```
+
+**更新方法**：
+- 当仓库中的 `web-client.html` 有更新时，重新下载文件覆盖本地文件即可
+- 配置信息（服务器地址、设备ID等）保存在浏览器 localStorage 中，不会丢失
+- 建议定期检查仓库更新，获取最新功能和 bug 修复
+
+#### 方式 2：部署到 Web 服务器（可选）
+
+如果你希望通过 HTTP 访问 Web 客户端，可以部署到服务器：
+
+```bash
+# 1. 将 web-client.html 上传到服务器
+scp web-client.html root@<你的服务器IP>:/var/www/html/
+
+# 2. 配置 Nginx（示例）
+# 在 /etc/nginx/sites-available/default 中添加：
+#   location / {
+#       root /var/www/html;
+#       index web-client.html;
+#   }
+
+# 3. 重启 Nginx
+sudo systemctl restart nginx
+```
+
+**更新方法**：
+- 重新上传 `web-client.html` 文件覆盖服务器上的旧文件
+- 如果使用 Git 部署，可以在服务器上执行 `git pull` 更新
+
+**注意**：
+- Web 客户端通过配置的服务器地址连接中转服务器，**中转服务器更新时，Web 客户端不需要更新**
+- 只有 `web-client.html` 文件本身有更新（新功能、bug修复）时，才需要更新客户端文件
+- 配置信息保存在浏览器中，更新文件不会丢失配置
+
+### PC 客户端配置
 
 更新 `pc-client/config.py` 或 `.env` 文件：
 
@@ -384,19 +460,9 @@ RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
 # RELAY_SERVER_URL = "ws://relay.yourdomain.com:8765/ws"
 ```
 
-### Android 应用配置
-
-在 Android 应用中更新服务器地址（通常在 `RelayClient` 初始化时传入）：
-
-```kotlin
-// 使用 IPv4 地址（替换为你的服务器IP）
-val serverUrl = "ws://<你的服务器IP>:8765/ws"
-
-// 或使用 IPv6 地址
-// val serverUrl = "ws://[<你的IPv6地址>]:8765/ws"
-
-val relayClient = RelayClient(serverUrl)
-```
+**更新方法**：
+- 如果 PC 客户端代码有更新，重新下载 `pc-client/` 目录
+- 如果只是中转服务器地址变更，只需修改配置文件
 
 ## 故障排查
 
