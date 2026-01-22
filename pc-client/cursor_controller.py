@@ -3,7 +3,7 @@ import time
 import ctypes
 import pyautogui
 import pygetwindow as gw
-from config import CURSOR_WINDOW_TITLE, INPUT_DELAY
+from config import CURSOR_WINDOW_TITLE, INPUT_DELAY, NEW_CHAT_COMMAND
 
 # Windows API 常量
 SW_RESTORE = 9
@@ -16,6 +16,7 @@ class CursorController:
     def __init__(self):
         pyautogui.FAILSAFE = True
         pyautogui.PAUSE = INPUT_DELAY
+        self.chat_open = False
     
     def find_cursor_window(self):
         """查找 Cursor 窗口"""
@@ -48,19 +49,36 @@ class CursorController:
             print(f"[ERROR] 激活窗口失败: {e}")
             return False
     
-    def open_chat_panel(self) -> bool:
+    def open_chat_panel(self, force_open: bool = False) -> bool:
         """打开 Cursor AI 对话面板 (Ctrl+L)"""
         if not self.activate_cursor():
             return False
         
-        time.sleep(0.3)
-        pyautogui.hotkey('ctrl', 'l')
-        time.sleep(0.5)
+        if force_open or not self.chat_open:
+            time.sleep(0.3)
+            pyautogui.hotkey('ctrl', 'l')
+            time.sleep(0.5)
+            self.chat_open = True
         return True
     
-    def send_message(self, message: str) -> bool:
+    def new_chat(self) -> bool:
+        """通过命令面板触发 New Chat"""
+        if not self.activate_cursor():
+            return False
+        
+        time.sleep(0.3)
+        pyautogui.hotkey('ctrl', 'shift', 'p')
+        time.sleep(0.2)
+        self._type_text(NEW_CHAT_COMMAND)
+        time.sleep(0.2)
+        pyautogui.press('enter')
+        time.sleep(0.5)
+        self.chat_open = True
+        return True
+    
+    def send_message(self, message: str, force_open: bool = False) -> bool:
         """向 Cursor 发送消息"""
-        if not self.open_chat_panel():
+        if not self.open_chat_panel(force_open=force_open):
             return False
         
         time.sleep(0.3)
@@ -87,6 +105,7 @@ class CursorController:
             "title": window.title if window else None,
             "minimized": window.isMinimized if window else None,
         }
+
 
 
 # 测试

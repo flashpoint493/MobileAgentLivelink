@@ -1,6 +1,26 @@
 # MobileAgentLivelink 变更日志
 
+## [0.1.5] - 2026-01-23
+
+### Added
+- 配对密钥校验（PC 注册携带 AUTH_TOKEN，Web 配对需输入）
+- Web 上下文请求与回传（默认 docs/CONTEXT.md）
+- 新对话入口（清空 Cursor 对话）
+- 任务开始/完成保底通知
+- PC 状态回传包含工程目录
+- Web 端连接配置与聊天历史持久化
+
+### Changed
+- Web 增强：新增状态/上下文/新对话操作区
+- PC 端支持上下文读取与状态扩展
+
+### Documentation
+- 更新部署文档，补充中转服务器应用更新流程
+
+---
+
 ## [0.1.4] - 2026-01-22
+
 
 ### Changed
 - **废弃Android App方案**，改用Web客户端作为唯一客户端

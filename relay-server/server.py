@@ -24,11 +24,15 @@ class ConnectionManager:
         self.mobile_clients: Dict[str, WebSocket] = {}
         # mobile_id -> pc_id 配对关系
         self.pairings: Dict[str, str] = {}
+        # pc_id -> token
+        self.pc_tokens: Dict[str, str] = {}
     
-    async def register(self, ws: WebSocket, device_id: str, device_type: str):
+    async def register(self, ws: WebSocket, device_id: str, device_type: str, token: str | None = None):
         """注册设备"""
         if device_type == "pc":
             self.pc_clients[device_id] = ws
+            if token is not None:
+                self.pc_tokens[device_id] = token
             print(f"[PC] 已注册: {device_id}")
         else:
             self.mobile_clients[device_id] = ws
@@ -38,17 +42,22 @@ class ConnectionManager:
         """断开连接"""
         if device_type == "pc":
             self.pc_clients.pop(device_id, None)
+            self.pc_tokens.pop(device_id, None)
         else:
             self.mobile_clients.pop(device_id, None)
             self.pairings.pop(device_id, None)
     
-    def pair(self, mobile_id: str, pc_id: str) -> bool:
+    def pair(self, mobile_id: str, pc_id: str, token: str | None) -> tuple[bool, str | None]:
         """配对手机和 PC"""
-        if pc_id in self.pc_clients:
-            self.pairings[mobile_id] = pc_id
-            print(f"[Pair] {mobile_id} <-> {pc_id}")
-            return True
-        return False
+        if pc_id not in self.pc_clients:
+            return False, "pc_offline"
+        required_token = self.pc_tokens.get(pc_id, "")
+        if required_token and token != required_token:
+            return False, "invalid_token"
+        self.pairings[mobile_id] = pc_id
+        print(f"[Pair] {mobile_id} <-> {pc_id}")
+        return True, None
+
     
     async def relay_to_pc(self, mobile_id: str, message: dict) -> bool:
         """转发消息到 PC"""
@@ -90,7 +99,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 # 设备注册
                 device_id = data.get("device_id")
                 device_type = data.get("device_type")
-                await manager.register(websocket, device_id, device_type)
+                token = data.get("token")
+                await manager.register(websocket, device_id, device_type, token=token)
                 await websocket.send_json({
                     "type": "registered",
                     "device_id": device_id
@@ -99,12 +109,15 @@ async def websocket_endpoint(websocket: WebSocket):
             elif msg_type == "pair":
                 # 手机请求配对 PC
                 pc_id = data.get("pc_id")
-                success = manager.pair(device_id, pc_id)
+                token = data.get("token")
+                success, reason = manager.pair(device_id, pc_id, token)
                 await websocket.send_json({
                     "type": "pair_result",
                     "success": success,
-                    "pc_id": pc_id
+                    "pc_id": pc_id,
+                    "reason": reason
                 })
+
             
             elif msg_type == "list_pcs":
                 # 获取在线 PC 列表
@@ -123,9 +136,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         "message": "PC 未连接或未配对"
                     })
             
-            elif msg_type in ["ack", "status", "pong"]:
+            elif msg_type in ["ack", "status", "pong", "context_result", "task_started", "task_done", "new_chat_result", "set_chat_state_result"]:
                 # PC 回复，转发给手机
                 await manager.relay_to_mobile(device_id, data)
+
             
             elif msg_type == "ping":
                 await websocket.send_json({"type": "pong"})

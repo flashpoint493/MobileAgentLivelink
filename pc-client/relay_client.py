@@ -1,8 +1,9 @@
 """WebSocket 中转服务客户端"""
 import asyncio
 import json
+from pathlib import Path
 from websockets import connect, ConnectionClosed
-from config import RELAY_SERVER_URL, DEVICE_ID, AUTH_TOKEN
+from config import RELAY_SERVER_URL, DEVICE_ID, AUTH_TOKEN, PROJECT_ROOT, TASK_DONE_TIMEOUT
 from cursor_controller import CursorController
 
 
@@ -13,6 +14,8 @@ class RelayClient:
         self.cursor = CursorController()
         self.ws = None
         self.running = False
+        self.last_message = None
+        self.project_root = Path(PROJECT_ROOT).resolve()
     
     async def connect(self):
         """连接到中转服务器"""
@@ -31,6 +34,8 @@ class RelayClient:
             })
             
             print(f"[INFO] 已连接，设备ID: {DEVICE_ID}")
+            if AUTH_TOKEN:
+                print(f"[INFO] Pair Token: {AUTH_TOKEN}")
             return True
         except Exception as e:
             print(f"[ERROR] 连接失败: {e}")
@@ -41,6 +46,63 @@ class RelayClient:
         if self.ws:
             await self.ws.send(json.dumps(data))
     
+    def _resolve_path(self, raw_path: str) -> Path | None:
+        try:
+            candidate = (self.project_root / raw_path).resolve()
+            if candidate == self.project_root or self.project_root in candidate.parents:
+                return candidate
+        except Exception:
+            return None
+        return None
+    
+    def _read_context_files(self, paths: list) -> list:
+        items = []
+        for raw in paths:
+            if not raw:
+                continue
+            target = self._resolve_path(raw)
+            if not target:
+                items.append({"path": raw, "ok": False, "error": "invalid_path"})
+                continue
+            if not target.exists() or not target.is_file():
+                items.append({"path": raw, "ok": False, "error": "not_found"})
+                continue
+            try:
+                content = target.read_text(encoding="utf-8", errors="ignore")
+                truncated = False
+                if len(content) > 4000:
+                    content = content[:4000]
+                    truncated = True
+                items.append({"path": raw, "ok": True, "content": content, "truncated": truncated})
+            except Exception as e:
+                items.append({"path": raw, "ok": False, "error": str(e)})
+        return items
+    
+    async def _send_task_done(self, message_id: int, timeout: float):
+        await asyncio.sleep(timeout)
+        await self.send({
+            "type": "task_done",
+            "message_id": message_id,
+            "estimated": True,
+            "timeout": timeout
+        })
+    
+    async def _send_context_result(self, context_request: dict, message_id: int | None = None, request_id: int | None = None):
+        paths = context_request.get("paths", []) if isinstance(context_request, dict) else []
+        if isinstance(paths, str):
+            paths = [paths]
+        items = self._read_context_files(paths)
+        payload = {
+            "type": "context_result",
+            "items": items,
+            "project_root": str(self.project_root),
+        }
+        if message_id is not None:
+            payload["message_id"] = message_id
+        if request_id is not None:
+            payload["request_id"] = request_id
+        await self.send(payload)
+    
     async def handle_message(self, message: str):
         """处理收到的消息"""
         try:
@@ -50,22 +112,61 @@ class RelayClient:
             if msg_type == "send_to_cursor":
                 # 收到手机发来的消息，转发给 Cursor
                 content = data.get("content", "")
+                force_open = data.get("force_open", False)
                 print(f"[RECV] 收到指令: {content[:50]}...")
                 
-                success = self.cursor.send_message(content)
+                success = self.cursor.send_message(content, force_open=force_open)
+                if success:
+                    self.last_message = content
                 await self.send({
                     "type": "ack",
                     "success": success,
                     "message_id": data.get("message_id")
                 })
+                if success:
+                    await self.send({
+                        "type": "task_started",
+                        "message_id": data.get("message_id")
+                    })
+                    done_timeout = float(data.get("done_timeout", TASK_DONE_TIMEOUT))
+                    asyncio.create_task(self._send_task_done(data.get("message_id"), done_timeout))
+                if data.get("context_request"):
+                    await self._send_context_result(data.get("context_request"), message_id=data.get("message_id"))
                 
             elif msg_type == "get_status":
                 # 返回状态
                 status = self.cursor.get_status()
-                await self.send({"type": "status", **status})
+                await self.send({
+                    "type": "status",
+                    **status,
+                    "project_root": str(self.project_root),
+                    "last_message": self.last_message
+                })
+                
+            elif msg_type == "get_context":
+                context_request = data.get("context_request", {})
+                await self._send_context_result(context_request, request_id=data.get("request_id"))
+                
+            elif msg_type == "new_chat":
+                success = self.cursor.new_chat()
+                await self.send({
+                    "type": "new_chat_result",
+                    "success": success,
+                    "request_id": data.get("request_id")
+                })
+                
+            elif msg_type == "set_chat_state":
+                self.cursor.chat_open = bool(data.get("open"))
+                await self.send({
+                    "type": "set_chat_state_result",
+                    "success": True,
+                    "open": self.cursor.chat_open,
+                    "request_id": data.get("request_id")
+                })
                 
             elif msg_type == "ping":
                 await self.send({"type": "pong"})
+
                 
         except json.JSONDecodeError:
             print(f"[WARN] 无效消息: {message}")
@@ -99,3 +200,4 @@ if __name__ == "__main__":
     print("MobileAgentLivelink PC Client")
     print("=" * 50)
     asyncio.run(main())
+

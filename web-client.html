@@ -314,7 +314,12 @@
                     <label for="deviceId">设备ID（任意唯一标识）</label>
                     <input type="text" id="deviceId" placeholder="web-client-001" value="web-client-001">
                 </div>
+                <div class="form-group">
+                    <label for="pairToken">配对密钥（从PC端获取）</label>
+                    <input type="text" id="pairToken" placeholder="pc端 AUTH_TOKEN">
+                </div>
                 <button id="connectBtn" class="btn btn-primary" onclick="connect()">连接服务器</button>
+
             </div>
 
             <!-- PC选择 -->
@@ -337,7 +342,23 @@
                 <div class="info-box" id="pairedPCInfo">
                     已配对到: <strong id="pairedPCId">-</strong>
                 </div>
+                <div class="section">
+                    <div class="form-group">
+                        <label for="contextPaths">上下文请求（可选，逗号分隔路径）</label>
+                        <input type="text" id="contextPaths" placeholder="docs/CONTEXT.md" value="docs/CONTEXT.md">
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                        <button class="btn btn-primary" onclick="requestContext()">请求上下文</button>
+                        <button class="btn btn-primary" onclick="requestStatus()">获取PC状态</button>
+                        <button class="btn btn-primary" onclick="requestNewChat()">新对话/清空上下文</button>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn" onclick="setChatState(true)">标记面板已打开</button>
+                        <button class="btn" onclick="setChatState(false)">标记面板已关闭</button>
+                    </div>
+                </div>
                 <div class="chat-container">
+
                     <div id="chatMessages" class="chat-messages">
                         <div class="message received">
                             <div class="content">连接成功！可以发送开发需求了</div>
@@ -357,6 +378,16 @@
         let ws = null;
         let pairedPCId = null;
         let selectedPCId = null;
+        let chatHistory = [];
+
+        const STORAGE_KEYS = {
+            serverUrl: 'mal_server_url',
+            deviceId: 'mal_device_id',
+            pairToken: 'mal_pair_token',
+            contextPaths: 'mal_context_paths',
+            history: 'mal_chat_history'
+        };
+
 
         function connect() {
             const serverUrl = document.getElementById('serverUrl').value;
@@ -366,6 +397,8 @@
                 alert('请填写完整连接信息');
                 return;
             }
+
+            saveSettings();
 
             try {
                 ws = new WebSocket(serverUrl);
@@ -382,6 +415,66 @@
                 document.getElementById('connectBtn').textContent = '连接服务器';
             }
         }
+
+        function loadSettings() {
+            const serverUrl = localStorage.getItem(STORAGE_KEYS.serverUrl);
+            const deviceId = localStorage.getItem(STORAGE_KEYS.deviceId);
+            const pairToken = localStorage.getItem(STORAGE_KEYS.pairToken);
+            const contextPaths = localStorage.getItem(STORAGE_KEYS.contextPaths);
+
+            if (serverUrl) {
+                document.getElementById('serverUrl').value = serverUrl;
+            }
+            if (deviceId) {
+                document.getElementById('deviceId').value = deviceId;
+            }
+            if (pairToken) {
+                document.getElementById('pairToken').value = pairToken;
+            }
+            if (contextPaths) {
+                document.getElementById('contextPaths').value = contextPaths;
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem(STORAGE_KEYS.serverUrl, document.getElementById('serverUrl').value);
+            localStorage.setItem(STORAGE_KEYS.deviceId, document.getElementById('deviceId').value);
+            localStorage.setItem(STORAGE_KEYS.pairToken, document.getElementById('pairToken').value);
+            localStorage.setItem(STORAGE_KEYS.contextPaths, document.getElementById('contextPaths').value);
+        }
+
+        function loadHistory() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.history);
+                if (!raw) {
+                    return;
+                }
+                const items = JSON.parse(raw);
+                if (Array.isArray(items)) {
+                    chatHistory = items;
+                    items.forEach(item => addMessage(item.type, item.content, item.time, false));
+                }
+            } catch (e) {
+                console.error('历史记录加载失败:', e);
+            }
+        }
+
+        function saveHistory() {
+            localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(chatHistory));
+        }
+
+        function getContextPaths() {
+            const raw = document.getElementById('contextPaths').value.trim();
+            if (!raw) {
+                return [];
+            }
+            return raw.split(',').map(item => item.trim()).filter(Boolean);
+        }
+
+        function getPairToken() {
+            return document.getElementById('pairToken').value.trim();
+        }
+
 
         function handleOpen() {
             const deviceId = document.getElementById('deviceId').value;
@@ -419,10 +512,26 @@
                     case 'status':
                         displayStatus(data);
                         break;
+                    case 'context_result':
+                        displayContextResult(data);
+                        break;
+                    case 'task_started':
+                        addMessage('system', '任务开始执行');
+                        break;
+                    case 'task_done':
+                        displayTaskDone(data);
+                        break;
+                    case 'new_chat_result':
+                        displayNewChatResult(data);
+                        break;
+                    case 'set_chat_state_result':
+                        displayChatStateResult(data);
+                        break;
                     case 'error':
                         alert('错误: ' + data.message);
                         break;
                 }
+
             } catch (e) {
                 console.error('消息解析失败:', e);
             }
@@ -441,12 +550,16 @@
 
         function resetConnection() {
             updateConnectionStatus(false);
+            pairedPCId = null;
+            selectedPCId = null;
+            document.getElementById('pairedPCId').textContent = '-';
             document.getElementById('connectBtn').disabled = false;
             document.getElementById('connectBtn').textContent = '连接服务器';
             document.getElementById('connectSection').classList.remove('hidden');
             document.getElementById('pcListSection').classList.add('hidden');
             document.getElementById('chatSection').classList.add('hidden');
         }
+
 
         function updateConnectionStatus(connected) {
             const status = document.getElementById('connectionStatus');
@@ -499,8 +612,10 @@
             // 发送配对请求
             ws.send(JSON.stringify({
                 type: 'pair',
-                pc_id: pcId
+                pc_id: pcId,
+                token: getPairToken()
             }));
+
         }
 
         function handlePairResult(data) {
@@ -513,9 +628,14 @@
 
                 addMessage('system', `已成功配对到 PC: ${pairedPCId}`);
             } else {
-                alert('配对失败: PC未在线');
+                const reasonMap = {
+                    invalid_token: '配对失败: 密钥无效',
+                    pc_offline: '配对失败: PC未在线'
+                };
+                alert(reasonMap[data.reason] || '配对失败');
             }
         }
+
 
         function sendMessage() {
             const input = document.getElementById('messageInput');
@@ -531,6 +651,9 @@
             }
 
             const messageId = Date.now();
+            const contextPaths = getContextPaths();
+
+            saveSettings();
 
             // 显示发送的消息
             addMessage('sent', content);
@@ -538,11 +661,14 @@
 
             // 发送到PC
             ws.send(JSON.stringify({
+
                 type: 'send_to_cursor',
                 content: content,
-                message_id: messageId
+                message_id: messageId,
+                context_request: contextPaths.length ? { paths: contextPaths } : undefined
             }));
         }
+
 
         function handleAck(data) {
             if (data.success) {
@@ -554,8 +680,17 @@
 
         function displayStatus(data) {
             let statusText = 'PC状态:\n';
-            if (data.cursor_running !== undefined) {
-                statusText += `- Cursor运行中: ${data.cursor_running ? '是' : '否'}\n`;
+            if (data.running !== undefined) {
+                statusText += `- Cursor运行中: ${data.running ? '是' : '否'}\n`;
+            }
+            if (data.title) {
+                statusText += `- 窗口标题: ${data.title}\n`;
+            }
+            if (data.minimized !== undefined) {
+                statusText += `- 最小化: ${data.minimized ? '是' : '否'}\n`;
+            }
+            if (data.project_root) {
+                statusText += `- 工程目录: ${data.project_root}\n`;
             }
             if (data.last_message) {
                 statusText += `- 最后消息: ${data.last_message}\n`;
@@ -564,7 +699,90 @@
             addMessage('received', statusText);
         }
 
-        function addMessage(type, content) {
+        function displayContextResult(data) {
+            if (!data.items || data.items.length === 0) {
+                addMessage('received', '未返回上下文内容');
+                return;
+            }
+            data.items.forEach(item => {
+                if (item.ok) {
+                    const header = `上下文: ${item.path}${item.truncated ? ' (已截断)' : ''}`;
+                    addMessage('received', `${header}\n${item.content}`);
+                } else {
+                    addMessage('received', `上下文获取失败: ${item.path} (${item.error})`);
+                }
+            });
+        }
+
+        function displayTaskDone(data) {
+            const estimated = data.estimated ? '（保底通知）' : '';
+            addMessage('system', `任务完成${estimated}`);
+        }
+
+        function displayNewChatResult(data) {
+            if (data.success) {
+                addMessage('system', '已触发新对话');
+                chatHistory = [];
+                saveHistory();
+                document.getElementById('chatMessages').innerHTML = '';
+            } else {
+                addMessage('system', '新对话触发失败');
+            }
+        }
+
+        function displayChatStateResult(data) {
+            if (data.success) {
+                addMessage('system', `已标记面板状态为: ${data.open ? '打开' : '关闭'}`);
+            } else {
+                addMessage('system', '面板状态更新失败');
+            }
+        }
+
+        function requestStatus() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('未连接到服务器');
+                return;
+            }
+            ws.send(JSON.stringify({ type: 'get_status' }));
+        }
+
+        function requestContext() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('未连接到服务器');
+                return;
+            }
+            const requestId = Date.now();
+            const paths = getContextPaths();
+            saveSettings();
+            ws.send(JSON.stringify({
+                type: 'get_context',
+                request_id: requestId,
+                context_request: { paths }
+            }));
+        }
+
+
+        function requestNewChat() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('未连接到服务器');
+                return;
+            }
+            const requestId = Date.now();
+            ws.send(JSON.stringify({ type: 'new_chat', request_id: requestId }));
+        }
+
+        function setChatState(open) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('未连接到服务器');
+                return;
+            }
+            const requestId = Date.now();
+            ws.send(JSON.stringify({ type: 'set_chat_state', request_id: requestId, open }));
+        }
+
+
+        function addMessage(type, content, time = null, save = true) {
+
             const container = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -575,15 +793,27 @@
 
             const timeDiv = document.createElement('div');
             timeDiv.className = 'time';
-            timeDiv.textContent = new Date().toLocaleTimeString();
+            const timeText = time || new Date().toLocaleTimeString();
+            timeDiv.textContent = timeText;
 
             messageDiv.appendChild(contentDiv);
             messageDiv.appendChild(timeDiv);
             container.appendChild(messageDiv);
 
+            if (save) {
+                chatHistory.push({ type, content, time: timeText });
+                saveHistory();
+            }
+
             // 滚动到底部
             container.scrollTop = container.scrollHeight;
         }
+
+
+        window.addEventListener('load', () => {
+            loadSettings();
+            loadHistory();
+        });
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -593,3 +823,4 @@
     </script>
 </body>
 </html>
+

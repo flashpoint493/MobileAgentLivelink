@@ -222,9 +222,45 @@ async def test():
 asyncio.run(test())
 ```
 
+## 更新中转服务器（应用变更）
+
+> 适用于已部署且使用 systemd 运行的场景。
+
+### 方式 A：使用 Git 更新（推荐）
+
+```bash
+ssh root@<你的服务器IP>
+cd /opt/mobileagentlivelink/MobileAgentLivelink
+
+git pull
+cd relay-server
+source venv/bin/activate
+pip install -r requirements.txt
+
+sudo systemctl restart mobileagent-relay
+sudo systemctl status mobileagent-relay
+```
+
+### 方式 B：使用 scp 覆盖更新
+
+```bash
+# 本地执行
+scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
+
+# 服务器执行
+ssh root@<你的服务器IP>
+cd /opt/mobileagentlivelink/relay-server
+source venv/bin/activate
+pip install -r requirements.txt
+
+sudo systemctl restart mobileagent-relay
+sudo systemctl status mobileagent-relay
+```
+
 ## 客户端配置更新
 
 ### PC 客户端配置
+
 
 更新 `pc-client/config.py` 或 `.env` 文件：
 
