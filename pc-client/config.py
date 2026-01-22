@@ -4,8 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 云中转服务器配置 (后续部署 CloudBase 后填写)
-RELAY_SERVER_URL = os.getenv("RELAY_SERVER_URL", "ws://localhost:8765/ws")
+# 云中转服务器配置
+# 公网服务器地址（已部署）
+RELAY_SERVER_URL = os.getenv("RELAY_SERVER_URL", "ws://<你的服务器IP>:8765/ws")
+# 本地测试: ws://localhost:8765/ws
 DEVICE_ID = os.getenv("DEVICE_ID", "default-pc")
 AUTH_TOKEN = os.getenv("AUTH_TOKEN", "")
 
