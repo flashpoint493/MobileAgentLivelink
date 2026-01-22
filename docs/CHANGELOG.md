@@ -1,5 +1,18 @@
 # MobileAgentLivelink 变更日志
 
+## [0.1.1] - 2026-01-22
+
+### Planned
+- 确认腾讯云为云服务供应商
+- 确定新设备迁移方案和工作流程
+- 明确公网部署步骤和验收标准
+
+### Documentation
+- 更新 docs/CONTEXT.md 记录当前规划和待办事项
+- 更新 CHANGELOG.md 记录本次对话产出
+
+---
+
 ## [0.1.0] - 2026-01-22
 
 ### Added
