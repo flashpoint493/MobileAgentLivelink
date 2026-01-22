@@ -88,9 +88,11 @@ pip install -r requirements.txt
 
 #### 3.1 服务器地址信息
 
-当前部署的服务器地址：
-- **IPv4 地址**: `<你的服务器IP>`
-- **IPv6 地址**: `<你的IPv6地址>`
+**注意**: 请将以下示例中的 `<你的服务器IP>` 替换为实际的服务器 IP 地址。
+
+部署后的服务器地址示例：
+- **IPv4 地址**: `<你的服务器IP>` (例如: `<你的服务器IP>`)
+- **IPv6 地址**: `<你的IPv6地址>` (例如: `<你的IPv6地址>`)
 - **WebSocket 地址**: 
   - IPv4: `ws://<你的服务器IP>:8765/ws`
   - IPv6: `ws://[<你的IPv6地址>]:8765/ws`
@@ -189,7 +191,7 @@ ss -tlnp | grep 8765
 # 在服务器上测试
 curl http://localhost:8765/health
 
-# 从本地测试（使用实际服务器地址）
+# 从本地测试（替换为你的服务器IP）
 curl http://<你的服务器IP>:8765/health
 ```
 
@@ -207,7 +209,7 @@ import asyncio
 import websockets
 
 async def test():
-    # 使用 IPv4 地址
+    # 使用 IPv4 地址（替换为你的服务器IP）
     uri = "ws://<你的服务器IP>:8765/ws"
     # 或使用 IPv6 地址（注意 IPv6 地址需要用方括号括起来）
     # uri = "ws://[<你的IPv6地址>]:8765/ws"
@@ -227,7 +229,7 @@ asyncio.run(test())
 更新 `pc-client/config.py` 或 `.env` 文件：
 
 ```python
-# 使用 IPv4 地址（推荐）
+# 使用 IPv4 地址（替换为你的服务器IP）
 RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
 
 # 或使用 IPv6 地址（注意 IPv6 地址需要用方括号括起来）
@@ -242,7 +244,7 @@ RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
 在 Android 应用中更新服务器地址（通常在 `RelayClient` 初始化时传入）：
 
 ```kotlin
-// 使用 IPv4 地址（推荐）
+// 使用 IPv4 地址（替换为你的服务器IP）
 val serverUrl = "ws://<你的服务器IP>:8765/ws"
 
 // 或使用 IPv6 地址
@@ -285,10 +287,10 @@ val relayClient = RelayClient(serverUrl)
 
 1. 检查服务器端口是否开放：
    ```bash
-   # 测试 IPv4
+   # 测试 IPv4（替换为你的服务器IP）
    telnet <你的服务器IP> 8765
    
-   # 或测试 IPv6
+   # 或测试 IPv6（替换为你的IPv6地址）
    telnet <你的IPv6地址> 8765
    ```
 
