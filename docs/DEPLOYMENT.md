@@ -1,0 +1,286 @@
+# MobileAgentLivelink 部署指南
+
+## 概述
+
+本文档描述如何将中转服务器部署到腾讯云，实现公网访问。
+
+## 部署方案
+
+根据 [DECISIONS.md](DECISIONS.md)，我们选择**腾讯云轻量应用服务器 (Lighthouse)** 作为部署方案。
+
+### 方案优势
+- ✅ 开通即用，5 分钟搞定
+- ✅ 标准 Linux 环境，部署逻辑清晰
+- ✅ 新用户首购价格优惠（约 ¥40-60/月）
+- ✅ 完全控制，便于调试
+
+## 部署步骤
+
+### 1. 购买腾讯云服务器
+
+1. 访问 [腾讯云轻量应用服务器](https://cloud.tencent.com/product/lighthouse)
+2. 选择配置：
+   - **地域**: 选择离你最近的地域（如：北京、上海、广州）
+   - **镜像**: Ubuntu 22.04 LTS
+   - **套餐**: 2核2G 或更高（推荐 2核4G）
+   - **带宽**: 3Mbps 起步
+3. 完成购买并获取：
+   - 服务器公网 IP
+   - SSH 登录密码（或密钥）
+
+### 2. 服务器环境准备
+
+#### 2.1 SSH 连接服务器
+
+```bash
+# 使用密码登录
+ssh root@<你的服务器IP>
+
+# 或使用密钥登录
+ssh -i <密钥路径> root@<你的服务器IP>
+```
+
+#### 2.2 安装 Python 环境
+
+```bash
+# 更新系统
+apt update && apt upgrade -y
+
+# 安装 Python 3.10+ 和 pip
+apt install -y python3 python3-pip python3-venv
+
+# 验证安装
+python3 --version  # 应显示 Python 3.10.x 或更高
+```
+
+#### 2.3 安装项目依赖
+
+```bash
+# 创建项目目录
+mkdir -p /opt/mobileagentlivelink
+cd /opt/mobileagentlivelink
+
+# 上传项目文件（使用 scp 或 git clone）
+# 方式1: 使用 git（如果项目在 GitHub）
+git clone <你的仓库地址> .
+
+# 方式2: 使用 scp 上传
+# 在本地执行: scp -r relay-server root@<服务器IP>:/opt/mobileagentlivelink/
+
+# 进入中转服务器目录
+cd relay-server
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
+
+# 安装依赖
+pip install -r requirements.txt
+```
+
+### 3. 配置服务器
+
+#### 3.1 创建环境变量文件
+
+```bash
+# 在 relay-server 目录下创建 .env 文件
+cat > .env << EOF
+# 服务器配置
+HOST=0.0.0.0
+PORT=8765
+
+# 安全配置（可选）
+AUTH_TOKEN=<你的认证令牌>
+EOF
+```
+
+#### 3.2 修改服务器代码支持环境变量
+
+服务器代码已支持从环境变量读取配置（如果已实现），否则需要修改 `server.py`。
+
+### 4. 配置防火墙
+
+在腾讯云控制台配置防火墙规则：
+
+1. 进入轻量应用服务器控制台
+2. 选择你的服务器 → **防火墙** → **添加规则**
+3. 添加规则：
+   - **类型**: 自定义
+   - **协议**: TCP
+   - **端口**: 8765
+   - **策略**: 允许
+   - **来源**: 0.0.0.0/0（或限制为特定 IP）
+
+### 5. 配置开机自启（使用 systemd）
+
+#### 5.1 创建 systemd 服务文件
+
+```bash
+sudo cat > /etc/systemd/system/mobileagent-relay.service << EOF
+[Unit]
+Description=MobileAgentLivelink Relay Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/mobileagentlivelink/relay-server
+Environment="PATH=/opt/mobileagentlivelink/relay-server/venv/bin"
+ExecStart=/opt/mobileagentlivelink/relay-server/venv/bin/python server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+#### 5.2 启动服务
+
+```bash
+# 重载 systemd
+sudo systemctl daemon-reload
+
+# 启动服务
+sudo systemctl start mobileagent-relay
+
+# 设置开机自启
+sudo systemctl enable mobileagent-relay
+
+# 查看服务状态
+sudo systemctl status mobileagent-relay
+
+# 查看日志
+sudo journalctl -u mobileagent-relay -f
+```
+
+### 6. 验证部署
+
+#### 6.1 检查服务运行状态
+
+```bash
+# 检查进程
+ps aux | grep server.py
+
+# 检查端口监听
+netstat -tlnp | grep 8765
+# 或
+ss -tlnp | grep 8765
+```
+
+#### 6.2 测试健康检查接口
+
+```bash
+# 在服务器上测试
+curl http://localhost:8765/health
+
+# 从本地测试（替换为你的服务器IP）
+curl http://<你的服务器IP>:8765/health
+```
+
+预期返回：
+```json
+{"status":"ok","pcs":0,"mobiles":0}
+```
+
+#### 6.3 测试 WebSocket 连接
+
+可以使用在线 WebSocket 测试工具，或使用 Python 脚本：
+
+```python
+import asyncio
+import websockets
+
+async def test():
+    uri = "ws://<你的服务器IP>:8765/ws"
+    async with websockets.connect(uri) as websocket:
+        # 发送注册消息
+        await websocket.send('{"type":"register","device_id":"test","device_type":"mobile"}')
+        response = await websocket.recv()
+        print(f"收到响应: {response}")
+
+asyncio.run(test())
+```
+
+## 客户端配置更新
+
+### PC 客户端配置
+
+更新 `pc-client/config.py` 或 `.env` 文件：
+
+```python
+RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
+# 或使用域名（如果已配置）
+# RELAY_SERVER_URL = "ws://relay.yourdomain.com:8765/ws"
+```
+
+### Android 应用配置
+
+在 Android 应用中更新服务器地址（通常在 `RelayClient` 初始化时传入）。
+
+## 故障排查
+
+### 服务无法启动
+
+1. 检查 Python 环境：
+   ```bash
+   python3 --version
+   which python3
+   ```
+
+2. 检查依赖安装：
+   ```bash
+   source venv/bin/activate
+   pip list
+   ```
+
+3. 查看服务日志：
+   ```bash
+   sudo journalctl -u mobileagent-relay -n 50
+   ```
+
+### 无法连接服务器
+
+1. 检查防火墙规则（腾讯云控制台）
+2. 检查服务器防火墙（ufw/iptables）
+3. 检查服务是否运行：
+   ```bash
+   sudo systemctl status mobileagent-relay
+   ```
+
+### WebSocket 连接失败
+
+1. 检查服务器端口是否开放：
+   ```bash
+   telnet <服务器IP> 8765
+   ```
+
+2. 检查服务日志中的错误信息
+
+3. 验证 WebSocket 路径是否正确：`/ws`
+
+## 安全建议
+
+1. **使用 HTTPS/WSS**（生产环境推荐）：
+   - 配置 Nginx 反向代理
+   - 使用 Let's Encrypt 免费 SSL 证书
+   - 将 WebSocket 升级为 WSS
+
+2. **认证机制**：
+   - 实现设备认证（AUTH_TOKEN）
+   - 限制连接来源 IP（如需要）
+
+3. **监控和日志**：
+   - 配置日志轮转
+   - 设置监控告警
+
+## 下一步
+
+部署完成后：
+1. 更新 PC 客户端配置
+2. 更新 Android 应用配置
+3. 执行端到端测试（参考 `docs/QA_TEST_CASES.md`）
+
+---
+
+*最后更新: 2026-01-22*

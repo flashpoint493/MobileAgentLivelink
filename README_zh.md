@@ -79,7 +79,7 @@ pip install -r requirements.txt
 python server.py
 ```
 
-**注意**: 生产环境建议将中转服务器部署到云服务（如腾讯云 CloudBase）以实现公网访问。
+**注意**: 生产环境建议将中转服务器部署到云服务（如腾讯云轻量应用服务器）以实现公网访问。详细部署指南请参考 [部署文档](docs/DEPLOYMENT.md)。
 
 ### Android 应用设置
 
@@ -98,7 +98,9 @@ MobileAgentLivelink/
 │   ├── CONTEXT.md        # 当前项目状态
 │   ├── DECISIONS.md      # 架构决策记录
 │   ├── ROADMAP.md        # 开发路线图
-│   └── CHANGELOG.md      # 版本历史
+│   ├── CHANGELOG.md      # 版本历史
+│   ├── DEPLOYMENT.md     # 部署指南
+│   └── QA_TEST_CASES.md  # 测试用例手册
 └── CONTRIBUTING_AI.md    # AI 协作指南
 ```
 
@@ -121,9 +123,10 @@ MobileAgentLivelink/
 - [x] 本地通信测试（已验证）
 
 **下一步**:
-- [ ] 部署中转服务器到公网
+- [x] 创建部署文档和脚本
+- [ ] 部署中转服务器到公网（参考 [部署指南](docs/DEPLOYMENT.md)）
 - [ ] Android 应用编译测试
-- [ ] 端到端公网测试
+- [ ] 端到端公网测试（参考 [测试用例](docs/QA_TEST_CASES.md)）
 
 ## 🤝 贡献指南
 

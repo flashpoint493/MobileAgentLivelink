@@ -79,7 +79,7 @@ pip install -r requirements.txt
 python server.py
 ```
 
-**Note**: For production, deploy the relay server to a cloud service (e.g., Tencent CloudBase) for public network access.
+**Note**: For production, deploy the relay server to a cloud service (e.g., Tencent Cloud Lighthouse) for public network access. See [Deployment Guide](docs/DEPLOYMENT.md) for details.
 
 ### Android App Setup
 
@@ -98,7 +98,9 @@ MobileAgentLivelink/
 │   ├── CONTEXT.md        # Current project state
 │   ├── DECISIONS.md      # Architecture decisions
 │   ├── ROADMAP.md        # Development roadmap
-│   └── CHANGELOG.md      # Version history
+│   ├── CHANGELOG.md      # Version history
+│   ├── DEPLOYMENT.md     # Deployment guide
+│   └── QA_TEST_CASES.md  # Test cases
 └── CONTRIBUTING_AI.md    # AI collaboration guidelines
 ```
 
@@ -121,9 +123,10 @@ MobileAgentLivelink/
 - [x] Local communication test (verified)
 
 **Next Steps**:
-- [ ] Deploy relay server to public network
+- [x] Create deployment documentation and scripts
+- [ ] Deploy relay server to public network (see [Deployment Guide](docs/DEPLOYMENT.md))
 - [ ] Android app compilation testing
-- [ ] End-to-end public network testing
+- [ ] End-to-end public network testing (see [Test Cases](docs/QA_TEST_CASES.md))
 
 ## 🤝 Contributing
 
