@@ -64,31 +64,35 @@ mkdir -p /opt/mobileagentlivelink
 cd /opt/mobileagentlivelink
 
 # 上传项目文件（使用 scp 或 git clone）
-# 方式1: 使用 git（如果项目在 GitHub）
-# 注意: git clone 会创建项目名称的子目录，需要先进入该目录
 
-# === 首次部署：克隆仓库 ===
-# git clone https://github.com/flashpoint493/MobileAgentLivelink.git
-# cd MobileAgentLivelink
+# === 方式1: 使用 scp 上传（推荐，适用于 GitHub 无法访问的情况）===
+# 在本地 Windows PowerShell 执行：
+# scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
+# 如果使用 scp，则不需要 cd MobileAgentLivelink，直接进入 relay-server 目录
 
-# === 如果已经 clone 过，更新到最新版本 ===
-# cd MobileAgentLivelink
-# git pull
+# === 方式2: 使用 git clone（需要服务器能访问 GitHub）===
+# 如果遇到 "Connection timed out" 错误，请使用方式1（scp）或方式3（代理）
 
-# 或者使用条件判断（自动检测）：
+# 检查是否已经 clone 过仓库
 if [ -d "MobileAgentLivelink" ]; then
     echo "仓库已存在，更新到最新版本..."
     cd MobileAgentLivelink
     git pull
 else
     echo "首次克隆仓库..."
+    # 如果 GitHub 无法访问，请使用方式1（scp）上传文件
     git clone https://github.com/flashpoint493/MobileAgentLivelink.git
     cd MobileAgentLivelink
 fi
 
-# 方式2: 使用 scp 上传（推荐，更简单）
-# 在本地执行: scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
-# 如果使用 scp，则不需要 cd MobileAgentLivelink
+# === 方式3: 使用代理访问 GitHub（如果方式1和2都不可用）===
+# 配置 Git 使用代理（需要先设置代理服务器）
+# git config --global http.proxy http://<代理地址>:<端口>
+# git config --global https.proxy https://<代理地址>:<端口>
+# git clone https://github.com/flashpoint493/MobileAgentLivelink.git
+# 使用完后取消代理：
+# git config --global --unset http.proxy
+# git config --global --unset https.proxy
 
 # 进入中转服务器目录
 cd relay-server
@@ -465,6 +469,51 @@ RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
 - 如果只是中转服务器地址变更，只需修改配置文件
 
 ## 故障排查
+
+### GitHub 连接超时（无法 clone 仓库）
+
+如果遇到 `fatal: unable to access 'https://github.com/...': Connection timed out` 错误：
+
+**解决方案 1：使用 scp 从本地上传（推荐）**
+
+```bash
+# 在本地 Windows PowerShell 执行
+# 1. 进入项目根目录
+cd D:\Github\MobileAgentLivelink
+
+# 2. 上传整个项目到服务器
+scp -r . root@<你的服务器IP>:/opt/mobileagentlivelink/MobileAgentLivelink
+
+# 或者只上传 relay-server 目录（如果只需要部署中转服务器）
+scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
+```
+
+**解决方案 2：配置 Git 代理（如果有代理服务器）**
+
+```bash
+# 在服务器上配置代理
+git config --global http.proxy http://<代理地址>:<端口>
+git config --global https.proxy https://<代理地址>:<端口>
+
+# 然后重试 clone
+git clone https://github.com/flashpoint493/MobileAgentLivelink.git
+
+# 使用完后取消代理
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+**解决方案 3：检查网络连接**
+
+```bash
+# 测试是否能访问 GitHub
+ping github.com
+
+# 测试 HTTPS 连接
+curl -I https://github.com
+
+# 如果都无法访问，建议使用解决方案1（scp上传）
+```
 
 ### 服务无法启动
 
