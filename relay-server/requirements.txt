@@ -1,0 +1,7 @@
+# MobileAgentLivelink Relay Server
+# 云中转服务 (可部署到 CloudBase)
+
+websockets>=12.0
+uvicorn>=0.27.0
+fastapi>=0.109.0
+python-dotenv>=1.0.0
