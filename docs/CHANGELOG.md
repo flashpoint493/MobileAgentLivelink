@@ -1,5 +1,31 @@
 # MobileAgentLivelink 变更日志
 
+## [0.1.3] - 2026-01-22
+
+### Added
+- **Web客户端** (`web-client.html`)
+  - 单文件HTML，零依赖，无需构建
+  - 支持连接云中转服务器
+  - 实时PC列表显示和配对功能
+  - 聊天界面发送开发需求
+  - 消息确认和状态显示
+  - 响应式设计，支持桌面/平板/手机
+
+### Changed
+- 项目客户端策略：优先使用Web客户端替代Android App
+- Web客户端作为完整载体，支持所有基础功能
+
+### Documentation
+- 更新 PRD.md，记录REQ-002 Web客户端需求
+- 更新 docs/DECISIONS.md，记录A-002 Web客户端技术选型
+- 更新 docs/QA_TEST_CASES.md，添加Web客户端测试用例（TC-WEB-001 至 TC-WEB-005）
+- 更新 docs/CONTEXT.md，更新项目概述和当前状态
+
+### Decisions
+- [A-002] 确认Web客户端技术选型：单文件HTML（零依赖，易分发）
+
+---
+
 ## [0.1.2] - 2026-01-22
 
 ### Added

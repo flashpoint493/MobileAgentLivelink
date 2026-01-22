@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobileAgentLivelink - Web客户端</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: rgba(76, 175, 80, 0.9);
+        }
+
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pc-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .pc-item {
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pc-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .pc-item.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .pc-item h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .pc-item p {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .chat-container {
+            border: 2px solid #eee;
+            border-radius: 10px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9ff;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            max-width: 80%;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.received {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .message .time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-input {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #eee;
+            gap: 10px;
+        }
+
+        .message-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .message-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .message-input button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .message-input button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .info-box {
+            padding: 15px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .chat-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 MobileAgentLivelink</h1>
+            <p>Web客户端 - 远程控制PC Agent IDE</p>
+            <div id="connectionStatus" class="status disconnected">未连接</div>
+        </div>
+
+        <div class="content">
+            <!-- 连接设置 -->
+            <div id="connectSection" class="section">
+                <h2>连接设置</h2>
+                <div class="form-group">
+                    <label for="serverUrl">中转服务器地址</label>
+                    <input type="text" id="serverUrl" placeholder="ws://your-server-ip:8765/ws" value="ws://localhost:8765/ws">
+                </div>
+                <div class="form-group">
+                    <label for="deviceId">设备ID（任意唯一标识）</label>
+                    <input type="text" id="deviceId" placeholder="web-client-001" value="web-client-001">
+                </div>
+                <button id="connectBtn" class="btn btn-primary" onclick="connect()">连接服务器</button>
+            </div>
+
+            <!-- PC选择 -->
+            <div id="pcListSection" class="section hidden">
+                <h2>选择PC设备</h2>
+                <div class="info-box">
+                    已连接到服务器，请选择要控制的PC设备
+                </div>
+                <button class="btn btn-primary" onclick="listPCs()" style="margin-bottom: 15px;">刷新PC列表</button>
+                <div id="pcList" class="pc-list">
+                    <div class="empty-state">
+                        <p>正在加载在线PC列表...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 聊天界面 -->
+            <div id="chatSection" class="section hidden">
+                <h2>与PC对话</h2>
+                <div class="info-box" id="pairedPCInfo">
+                    已配对到: <strong id="pairedPCId">-</strong>
+                </div>
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="message received">
+                            <div class="content">连接成功！可以发送开发需求了</div>
+                            <div class="time">系统消息</div>
+                        </div>
+                    </div>
+                    <div class="message-input">
+                        <input type="text" id="messageInput" placeholder="输入开发需求..." onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let pairedPCId = null;
+        let selectedPCId = null;
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const deviceId = document.getElementById('deviceId').value;
+
+            if (!serverUrl || !deviceId) {
+                alert('请填写完整连接信息');
+                return;
+            }
+
+            try {
+                ws = new WebSocket(serverUrl);
+                ws.onopen = handleOpen;
+                ws.onmessage = handleMessage;
+                ws.onerror = handleError;
+                ws.onclose = handleClose;
+
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('connectBtn').textContent = '连接中...';
+            } catch (e) {
+                alert('连接失败: ' + e.message);
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('connectBtn').textContent = '连接服务器';
+            }
+        }
+
+        function handleOpen() {
+            const deviceId = document.getElementById('deviceId').value;
+            // 注册设备
+            ws.send(JSON.stringify({
+                type: 'register',
+                device_id: deviceId,
+                device_type: 'mobile'
+            }));
+
+            updateConnectionStatus(true);
+            document.getElementById('connectSection').classList.add('hidden');
+            document.getElementById('pcListSection').classList.remove('hidden');
+            listPCs();
+        }
+
+        function handleMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                const type = data.type;
+
+                switch (type) {
+                    case 'registered':
+                        console.log('设备注册成功:', data.device_id);
+                        break;
+                    case 'pc_list':
+                        displayPCList(data.pcs);
+                        break;
+                    case 'pair_result':
+                        handlePairResult(data);
+                        break;
+                    case 'ack':
+                        handleAck(data);
+                        break;
+                    case 'status':
+                        displayStatus(data);
+                        break;
+                    case 'error':
+                        alert('错误: ' + data.message);
+                        break;
+                }
+            } catch (e) {
+                console.error('消息解析失败:', e);
+            }
+        }
+
+        function handleError(error) {
+            console.error('WebSocket错误:', error);
+            alert('连接错误，请检查服务器地址');
+            resetConnection();
+        }
+
+        function handleClose() {
+            console.log('连接已关闭');
+            resetConnection();
+        }
+
+        function resetConnection() {
+            updateConnectionStatus(false);
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('connectBtn').textContent = '连接服务器';
+            document.getElementById('connectSection').classList.remove('hidden');
+            document.getElementById('pcListSection').classList.add('hidden');
+            document.getElementById('chatSection').classList.add('hidden');
+        }
+
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            if (connected) {
+                status.textContent = '已连接';
+                status.classList.remove('disconnected');
+                status.classList.add('connected');
+            } else {
+                status.textContent = '未连接';
+                status.classList.remove('connected');
+                status.classList.add('disconnected');
+            }
+        }
+
+        function listPCs() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'list_pcs' }));
+                document.getElementById('pcList').innerHTML = '<div class="empty-state"><p>正在加载在线PC列表...</p></div>';
+            }
+        }
+
+        function displayPCList(pcs) {
+            const container = document.getElementById('pcList');
+
+            if (!pcs || pcs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>暂无在线PC设备</p>
+                        <p style="font-size: 12px; margin-top: 10px;">请确保PC客户端正在运行并已连接到服务器</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = pcs.map(pcId => `
+                <div class="pc-item" onclick="selectPC('${pcId}')" id="pc-${pcId}">
+                    <h3>💻 ${pcId}</h3>
+                    <p>点击配对此设备</p>
+                </div>
+            `).join('');
+        }
+
+        function selectPC(pcId) {
+            selectedPCId = pcId;
+
+            // 高亮选中项
+            document.querySelectorAll('.pc-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById('pc-' + pcId)?.classList.add('selected');
+
+            // 发送配对请求
+            ws.send(JSON.stringify({
+                type: 'pair',
+                pc_id: pcId
+            }));
+        }
+
+        function handlePairResult(data) {
+            if (data.success) {
+                pairedPCId = data.pc_id;
+                document.getElementById('pairedPCId').textContent = pairedPCId;
+
+                document.getElementById('pcListSection').classList.add('hidden');
+                document.getElementById('chatSection').classList.remove('hidden');
+
+                addMessage('system', `已成功配对到 PC: ${pairedPCId}`);
+            } else {
+                alert('配对失败: PC未在线');
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) {
+                return;
+            }
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('未连接到服务器');
+                return;
+            }
+
+            const messageId = Date.now();
+
+            // 显示发送的消息
+            addMessage('sent', content);
+            input.value = '';
+
+            // 发送到PC
+            ws.send(JSON.stringify({
+                type: 'send_to_cursor',
+                content: content,
+                message_id: messageId
+            }));
+        }
+
+        function handleAck(data) {
+            if (data.success) {
+                addMessage('system', '消息已发送到Cursor');
+            } else {
+                addMessage('system', '消息发送失败');
+            }
+        }
+
+        function displayStatus(data) {
+            let statusText = 'PC状态:\n';
+            if (data.cursor_running !== undefined) {
+                statusText += `- Cursor运行中: ${data.cursor_running ? '是' : '否'}\n`;
+            }
+            if (data.last_message) {
+                statusText += `- 最后消息: ${data.last_message}\n`;
+            }
+
+            addMessage('received', statusText);
+        }
+
+        function addMessage(type, content) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'content';
+            contentDiv.textContent = content;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'time';
+            timeDiv.textContent = new Date().toLocaleTimeString();
+
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+            container.appendChild(messageDiv);
+
+            // 滚动到底部
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>
