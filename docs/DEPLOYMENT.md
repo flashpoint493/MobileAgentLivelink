@@ -72,6 +72,14 @@ cd /opt/mobileagentlivelink
 
 # === 方式2: 使用 git clone（需要服务器能访问 GitHub）===
 # 如果遇到 "Connection timed out" 错误，请使用方式1（scp）或方式3（代理）
+#
+# 重要说明：
+# - 对于公开仓库（Public Repository）：不需要登录，可以直接 clone
+# - 对于私有仓库（Private Repository）：需要配置认证
+#   方式A: 使用 Personal Access Token
+#     git clone https://<token>@github.com/flashpoint493/MobileAgentLivelink.git
+#   方式B: 使用 SSH key（需要先配置 SSH key）
+#     git clone git@github.com:flashpoint493/MobileAgentLivelink.git
 
 # 检查是否已经 clone 过仓库
 if [ -d "MobileAgentLivelink" ]; then
@@ -81,6 +89,7 @@ if [ -d "MobileAgentLivelink" ]; then
 else
     echo "首次克隆仓库..."
     # 如果 GitHub 无法访问，请使用方式1（scp）上传文件
+    # 公开仓库可以直接 clone，无需登录
     git clone https://github.com/flashpoint493/MobileAgentLivelink.git
     cd MobileAgentLivelink
 fi
@@ -514,6 +523,51 @@ curl -I https://github.com
 
 # 如果都无法访问，建议使用解决方案1（scp上传）
 ```
+
+### Git 认证问题（私有仓库）
+
+如果仓库是私有的，clone 时需要认证：
+
+**方式 1：使用 Personal Access Token（推荐）**
+
+```bash
+# 在 GitHub 创建 Personal Access Token (Settings -> Developer settings -> Personal access tokens)
+# 然后使用 token 克隆：
+git clone https://<token>@github.com/flashpoint493/MobileAgentLivelink.git
+
+# 或者在 URL 中嵌入 token
+git clone https://ghp_xxxxxxxxxxxx@github.com/flashpoint493/MobileAgentLivelink.git
+```
+
+**方式 2：配置 SSH Key**
+
+```bash
+# 1. 在服务器上生成 SSH key（如果还没有）
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# 2. 查看公钥
+cat ~/.ssh/id_ed25519.pub
+
+# 3. 将公钥添加到 GitHub (Settings -> SSH and GPG keys)
+
+# 4. 使用 SSH URL 克隆
+git clone git@github.com:flashpoint493/MobileAgentLivelink.git
+```
+
+**方式 3：配置 Git Credential Helper**
+
+```bash
+# 配置 Git 保存凭据
+git config --global credential.helper store
+
+# 首次 clone 时会提示输入用户名和密码/token
+git clone https://github.com/flashpoint493/MobileAgentLivelink.git
+# 输入用户名和 Personal Access Token（不是密码）
+```
+
+**注意**：
+- **公开仓库不需要认证**，可以直接 clone
+- 如果遇到认证错误，检查仓库是否为私有，或网络是否正常
 
 ### 服务无法启动
 
