@@ -61,6 +61,20 @@
   - 快速部署，无需服务器
 - **技术栈**: 原生HTML/CSS/JavaScript + WebSocket API
 
+### [A-003] 废弃Android App方案
+- **状态**: CONFIRMED
+- **日期**: 2026-01-22
+- **决策**: 废弃Android App开发，采用Web客户端作为唯一客户端
+- **选项**:
+  - A: 保留Android App
+  - B: 废弃Android App，使用Web客户端 ✅
+- **理由**:
+  - Web客户端跨平台（PC/平板/手机），无需多个客户端
+  - 零安装，直接打开浏览器即可使用
+  - 更轻量，维护成本更低
+  - 单文件分发更方便
+- **影响**: 删除android-app目录及所有Android相关代码
+
 ---
 
 ## 公网通信方案说明

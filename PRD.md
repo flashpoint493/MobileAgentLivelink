@@ -11,13 +11,14 @@
 
 ## 需求列表
 
-### REQ-001: 移动端远程控制 PC Agent IDE
-- **状态**: 已完成
+### REQ-001: 移动端远程控制 PC Agent IDE（已取消）
+- **状态**: cancelled
 - **优先级**: high
 - **创建时间**: 2026-01-22
 - **原始描述**: 见上文原始需求
 - **当前描述**: 开发Android App作为移动端远程控制PC IDE的客户端
-- **实现**: Android App + PC Python客户端 + 云中转服务器
+- **实现**: ~~Android App~~ → Web客户端
+- **取消原因**: Web客户端更轻量、跨平台、零安装，替代Android App
 
 ### REQ-002: Web客户端（单文件HTML）
 - **状态**: in_progress

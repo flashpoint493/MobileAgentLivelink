@@ -1,5 +1,30 @@
 # MobileAgentLivelink 变更日志
 
+## [0.1.4] - 2026-01-22
+
+### Changed
+- **废弃Android App方案**，改用Web客户端作为唯一客户端
+- 删除 `android-app/` 目录及所有Android相关代码
+- 更新项目架构图，移除Android引用
+- PC端配置改为支持环境变量（不持久化真实IP地址）
+
+### Documentation
+- 更新 README.md：移除Android相关内容，添加Web客户端设置说明
+- 更新 PRD.md：标记REQ-001为已取消，REQ-002为进行中
+- 更新 docs/ROADMAP.md：更新Milestone 0.1状态
+- 更新 docs/DECISIONS.md：添加决策A-003（废弃Android）
+- 更新 docs/QA_TEST_CASES.md：删除Android测试用例（TC-COMM-002, TC-COMM-003）
+- 更新 docs/CONTEXT.md：记录重要变更和当前状态
+- 更新技术栈：移除Android，添加Web客户端技术栈
+
+### Decisions
+- [A-003] 废弃Android App方案，采用Web客户端作为唯一客户端
+
+### Security
+- PC端配置改为通过环境变量读取服务器地址，避免在`.env`文件中持久化真实IP
+
+---
+
 ## [0.1.3] - 2026-01-22
 
 ### Added

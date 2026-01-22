@@ -11,7 +11,7 @@ A cross-platform application that enables mobile devices to remotely control PC 
 ## 🏗️ Architecture
 
 ```
-[Android App] <--WebSocket--> [Relay Server] <--WebSocket--> [PC Python Service]
+[Web Client] <--WebSocket--> [Relay Server] <--WebSocket--> [PC Python Service]
                                                                     |
                                                                     v
                                                            [Cursor/IDE]
@@ -23,7 +23,7 @@ A cross-platform application that enables mobile devices to remotely control PC 
 - ✅ WebSocket bidirectional communication
 - ✅ Text message transmission
 - ✅ PC-side Cursor controller integration
-- ✅ Android app with basic UI
+- ✅ Web client (single HTML file)
 
 ### Planned
 - [ ] Multi-IDE support (CodeBuddy, OpenCode)
@@ -37,7 +37,7 @@ A cross-platform application that enables mobile devices to remotely control PC 
 ### Prerequisites
 
 - **PC**: Windows 11, Python 3.10+
-- **Mobile**: Android 8.0+ (API 26+)
+- **Browser**: Modern browser with WebSocket support (Chrome, Firefox, Edge, Safari)
 - **IDE**: Cursor (for MVP)
 
 ### PC Client Setup
@@ -81,32 +81,36 @@ python server.py
 
 **Note**: For production, deploy the relay server to a cloud service (e.g., Tencent Cloud Lighthouse) for public network access. See [Deployment Guide](docs/DEPLOYMENT.md) for details.
 
-### Android App Setup
+### Web Client Setup
 
-1. Open the project in Android Studio
-2. Sync Gradle dependencies
-3. Build and run on your device or emulator
+Simply open `web-client.html` in your web browser:
+```bash
+# Double-click web-client.html or open in browser
+web-client.html
+```
+
+Configure relay server URL and connect.
 
 ## 📁 Project Structure
 
 ```
 MobileAgentLivelink/
-├── android-app/          # Android application (Kotlin + Jetpack Compose)
+├── web-client.html       # Single-file web client (HTML/CSS/JS)
 ├── pc-client/            # PC-side Python service
 ├── relay-server/         # WebSocket relay server
-├── docs/                 # Project documentation
-│   ├── CONTEXT.md        # Current project state
-│   ├── DECISIONS.md      # Architecture decisions
-│   ├── ROADMAP.md        # Development roadmap
-│   ├── CHANGELOG.md      # Version history
-│   ├── DEPLOYMENT.md     # Deployment guide
-│   └── QA_TEST_CASES.md  # Test cases
+├── docs/                # Project documentation
+│   ├── CONTEXT.md       # Current project state
+│   ├── DECISIONS.md     # Architecture decisions
+│   ├── ROADMAP.md       # Development roadmap
+│   ├── CHANGELOG.md     # Version history
+│   ├── DEPLOYMENT.md    # Deployment guide
+│   └── QA_TEST_CASES.md # Test cases
 └── CONTRIBUTING_AI.md    # AI collaboration guidelines
 ```
 
 ## 🛠️ Technology Stack
 
-- **Android**: Kotlin, Jetpack Compose, OkHttp (WebSocket)
+- **Web Client**: HTML, CSS, JavaScript (WebSocket API)
 - **PC Client**: Python, websockets, pyautogui, pynput
 - **Relay Server**: Python, FastAPI, uvicorn, websockets
 - **Communication**: WebSocket over cloud relay
@@ -119,13 +123,12 @@ MobileAgentLivelink/
 - [x] Project initialization
 - [x] PC-side Python service
 - [x] Relay server implementation
-- [x] Android app skeleton
+- [x] Web client (single HTML file)
 - [x] Local communication test (verified)
 
 **Next Steps**:
 - [x] Create deployment documentation and scripts
-- [ ] Deploy relay server to public network (see [Deployment Guide](docs/DEPLOYMENT.md))
-- [ ] Android app compilation testing
+- [x] Web client local testing
 - [ ] End-to-end public network testing (see [Test Cases](docs/QA_TEST_CASES.md))
 
 ## 🤝 Contributing
