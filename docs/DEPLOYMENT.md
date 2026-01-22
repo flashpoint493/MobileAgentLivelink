@@ -62,10 +62,13 @@ cd /opt/mobileagentlivelink
 
 # 上传项目文件（使用 scp 或 git clone）
 # 方式1: 使用 git（如果项目在 GitHub）
-git clone <你的仓库地址> .
+# 注意: git clone 会创建项目名称的子目录，需要先进入该目录
+git clone https://github.com/flashpoint493/MobileAgentLivelink.git
+cd MobileAgentLivelink
 
-# 方式2: 使用 scp 上传
+# 方式2: 使用 scp 上传（推荐，更简单）
 # 在本地执行: scp -r relay-server root@<服务器IP>:/opt/mobileagentlivelink/
+# 如果使用 scp，则不需要 cd MobileAgentLivelink
 
 # 进入中转服务器目录
 cd relay-server
