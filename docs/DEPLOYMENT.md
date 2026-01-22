@@ -33,8 +33,11 @@
 #### 2.1 SSH 连接服务器
 
 ```bash
-# 使用密码登录
+# 使用密码登录（IPv4）
 ssh root@<你的服务器IP>
+
+# 使用密码登录（IPv6）
+ssh root@<你的IPv6地址>
 
 # 或使用密钥登录
 ssh -i <密钥路径> root@<你的服务器IP>
@@ -67,7 +70,7 @@ git clone https://github.com/flashpoint493/MobileAgentLivelink.git
 cd MobileAgentLivelink
 
 # 方式2: 使用 scp 上传（推荐，更简单）
-# 在本地执行: scp -r relay-server root@<服务器IP>:/opt/mobileagentlivelink/
+# 在本地执行: scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
 # 如果使用 scp，则不需要 cd MobileAgentLivelink
 
 # 进入中转服务器目录
@@ -83,7 +86,16 @@ pip install -r requirements.txt
 
 ### 3. 配置服务器
 
-#### 3.1 创建环境变量文件
+#### 3.1 服务器地址信息
+
+当前部署的服务器地址：
+- **IPv4 地址**: `<你的服务器IP>`
+- **IPv6 地址**: `<你的IPv6地址>`
+- **WebSocket 地址**: 
+  - IPv4: `ws://<你的服务器IP>:8765/ws`
+  - IPv6: `ws://[<你的IPv6地址>]:8765/ws`
+
+#### 3.2 创建环境变量文件
 
 ```bash
 # 在 relay-server 目录下创建 .env 文件
@@ -97,7 +109,7 @@ AUTH_TOKEN=<你的认证令牌>
 EOF
 ```
 
-#### 3.2 修改服务器代码支持环境变量
+#### 3.3 修改服务器代码支持环境变量
 
 服务器代码已支持从环境变量读取配置（如果已实现），否则需要修改 `server.py`。
 
@@ -177,7 +189,7 @@ ss -tlnp | grep 8765
 # 在服务器上测试
 curl http://localhost:8765/health
 
-# 从本地测试（替换为你的服务器IP）
+# 从本地测试（使用实际服务器地址）
 curl http://<你的服务器IP>:8765/health
 ```
 
@@ -195,7 +207,10 @@ import asyncio
 import websockets
 
 async def test():
+    # 使用 IPv4 地址
     uri = "ws://<你的服务器IP>:8765/ws"
+    # 或使用 IPv6 地址（注意 IPv6 地址需要用方括号括起来）
+    # uri = "ws://[<你的IPv6地址>]:8765/ws"
     async with websockets.connect(uri) as websocket:
         # 发送注册消息
         await websocket.send('{"type":"register","device_id":"test","device_type":"mobile"}')
@@ -212,14 +227,29 @@ asyncio.run(test())
 更新 `pc-client/config.py` 或 `.env` 文件：
 
 ```python
+# 使用 IPv4 地址（推荐）
 RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
+
+# 或使用 IPv6 地址（注意 IPv6 地址需要用方括号括起来）
+# RELAY_SERVER_URL = "ws://[<你的IPv6地址>]:8765/ws"
+
 # 或使用域名（如果已配置）
 # RELAY_SERVER_URL = "ws://relay.yourdomain.com:8765/ws"
 ```
 
 ### Android 应用配置
 
-在 Android 应用中更新服务器地址（通常在 `RelayClient` 初始化时传入）。
+在 Android 应用中更新服务器地址（通常在 `RelayClient` 初始化时传入）：
+
+```kotlin
+// 使用 IPv4 地址（推荐）
+val serverUrl = "ws://<你的服务器IP>:8765/ws"
+
+// 或使用 IPv6 地址
+// val serverUrl = "ws://[<你的IPv6地址>]:8765/ws"
+
+val relayClient = RelayClient(serverUrl)
+```
 
 ## 故障排查
 
@@ -255,7 +285,11 @@ RELAY_SERVER_URL = "ws://<你的服务器IP>:8765/ws"
 
 1. 检查服务器端口是否开放：
    ```bash
-   telnet <服务器IP> 8765
+   # 测试 IPv4
+   telnet <你的服务器IP> 8765
+   
+   # 或测试 IPv6
+   telnet <你的IPv6地址> 8765
    ```
 
 2. 检查服务日志中的错误信息
