@@ -1,0 +1,4 @@
+我的需求是，我经常需要在PC现在打开各种agent ide或者cli 比如cursor\codebuddy或者是open code
+然后发送需求点击对话并开始vibe developing 
+但是很多时候我还希望我在手机上也能指挥他们，这些ide并不支持移动端而且手机上也不适合持久化存储我的开发内容。
+请为我设计开发一个App能够满足我的需求。
