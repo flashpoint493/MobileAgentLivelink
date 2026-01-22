@@ -31,9 +31,15 @@ class ConnectionManager:
         """注册设备"""
         if device_type == "pc":
             self.pc_clients[device_id] = ws
-            if token is not None:
-                self.pc_tokens[device_id] = token
-            print(f"[PC] 已注册: {device_id}")
+            # 存储token，只有非空字符串才视为有效配置
+            # None或空字符串都视为未配置，配对时将拒绝
+            if token and token.strip():
+                self.pc_tokens[device_id] = token.strip()
+                print(f"[PC] 已注册: {device_id}, Token: 已配置")
+            else:
+                # 如果未提供token或为空，设置为None，配对时将拒绝
+                self.pc_tokens[device_id] = None
+                print(f"[PC] 已注册: {device_id}, Token: 未配置（配对将被拒绝）")
         else:
             self.mobile_clients[device_id] = ws
             print(f"[Mobile] 已注册: {device_id}")
@@ -51,11 +57,23 @@ class ConnectionManager:
         """配对手机和 PC"""
         if pc_id not in self.pc_clients:
             return False, "pc_offline"
-        required_token = self.pc_tokens.get(pc_id, "")
-        if required_token and token != required_token:
+        
+        # 获取PC注册时设置的token
+        required_token = self.pc_tokens.get(pc_id)
+        
+        # 强制要求PC必须配置AUTH_TOKEN（非空字符串）
+        if not required_token:
+            print(f"[Pair] 配对失败: PC {pc_id} 未配置AUTH_TOKEN，拒绝配对")
+            return False, "pc_token_not_configured"
+        
+        # 如果PC设置了token，则必须验证
+        provided_token = (token.strip() if token else "") if token is not None else ""
+        if provided_token != required_token:
+            print(f"[Pair] 配对失败: PC {pc_id} token验证失败（期望: {required_token[:4]}..., 提供: {provided_token[:4] if provided_token else '空'}...）")
             return False, "invalid_token"
+        
         self.pairings[mobile_id] = pc_id
-        print(f"[Pair] {mobile_id} <-> {pc_id}")
+        print(f"[Pair] {mobile_id} <-> {pc_id} (Token验证通过)")
         return True, None
 
     

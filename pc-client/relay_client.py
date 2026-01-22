@@ -21,21 +21,29 @@ class RelayClient:
         """连接到中转服务器"""
         print(f"[INFO] 正在连接: {RELAY_SERVER_URL}")
         
+        # 检查AUTH_TOKEN是否配置
+        if not AUTH_TOKEN or not AUTH_TOKEN.strip():
+            print("[WARN] AUTH_TOKEN 未配置或为空！")
+            print("[WARN] 请设置环境变量 AUTH_TOKEN 以确保安全配对")
+            print("[WARN] 未配置AUTH_TOKEN将导致无法配对，请尽快配置")
+        
         try:
             self.ws = await connect(RELAY_SERVER_URL)
             self.running = True
             
-            # 注册设备
+            # 注册设备（即使AUTH_TOKEN为空也发送，让服务器知道需要验证）
             await self.send({
                 "type": "register",
                 "device_id": DEVICE_ID,
                 "device_type": "pc",
-                "token": AUTH_TOKEN
+                "token": AUTH_TOKEN if AUTH_TOKEN else ""
             })
             
             print(f"[INFO] 已连接，设备ID: {DEVICE_ID}")
-            if AUTH_TOKEN:
+            if AUTH_TOKEN and AUTH_TOKEN.strip():
                 print(f"[INFO] Pair Token: {AUTH_TOKEN}")
+            else:
+                print("[WARN] AUTH_TOKEN 未配置，配对将失败")
             return True
         except Exception as e:
             print(f"[ERROR] 连接失败: {e}")

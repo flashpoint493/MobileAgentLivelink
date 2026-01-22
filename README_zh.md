@@ -11,7 +11,7 @@
 ## 🏗️ 架构设计
 
 ```
-[Android App] <--WebSocket--> [中转服务器] <--WebSocket--> [PC Python服务]
+[Web客户端] <--WebSocket--> [中转服务器] <--WebSocket--> [PC Python服务]
                                                                     |
                                                                     v
                                                            [Cursor/IDE]
@@ -23,7 +23,7 @@
 - ✅ WebSocket 双向通信
 - ✅ 文本消息传输
 - ✅ PC 端 Cursor 控制器集成
-- ✅ Android 应用基础 UI
+- ✅ Web客户端（单文件HTML）
 
 ### 计划功能
 - [ ] 多 IDE 支持（CodeBuddy、OpenCode）
@@ -52,9 +52,22 @@ cd pc-client
 pip install -r requirements.txt
 ```
 
-3. 配置设置（可选）：
+3. 配置设置（必填）：
 ```bash
-# 编辑 config.py 自定义中转服务器 URL
+# 设置环境变量（安全要求）：
+# AUTH_TOKEN: 配对密钥（必填）- 防止未授权访问
+# RELAY_SERVER_URL: 中转服务器地址（默认: ws://localhost:8765/ws）
+# DEVICE_ID: 设备标识（默认: default-pc）
+
+# 示例（Windows PowerShell）：
+$env:AUTH_TOKEN="your_secret_token_here"
+$env:RELAY_SERVER_URL="ws://your-server-ip:8765/ws"
+$env:DEVICE_ID="my-pc-001"
+
+# 或在 pc-client/ 目录创建 .env 文件：
+# AUTH_TOKEN=your_secret_token_here
+# RELAY_SERVER_URL=ws://your-server-ip:8765/ws
+# DEVICE_ID=my-pc-001
 ```
 
 4. 运行 PC 客户端：
@@ -81,17 +94,21 @@ python server.py
 
 **注意**: 生产环境建议将中转服务器部署到云服务（如腾讯云轻量应用服务器）以实现公网访问。详细部署指南请参考 [部署文档](docs/DEPLOYMENT.md)。
 
-### Android 应用设置
+### Web客户端设置
 
-1. 在 Android Studio 中打开项目
-2. 同步 Gradle 依赖
-3. 在设备或模拟器上构建并运行
+直接在浏览器中打开 `web-client.html` 文件：
+```bash
+# 双击 web-client.html 或在浏览器中打开
+web-client.html
+```
+
+配置中转服务器地址并连接。在配对时，需要输入PC端配置的AUTH_TOKEN。
 
 ## 📁 项目结构
 
 ```
 MobileAgentLivelink/
-├── android-app/          # Android 应用 (Kotlin + Jetpack Compose)
+├── web-client.html       # 单文件Web客户端（HTML/CSS/JS）
 ├── pc-client/            # PC 端 Python 服务
 ├── relay-server/         # WebSocket 中转服务器
 ├── docs/                 # 项目文档
@@ -106,7 +123,7 @@ MobileAgentLivelink/
 
 ## 🛠️ 技术栈
 
-- **Android**: Kotlin, Jetpack Compose, OkHttp (WebSocket)
+- **Web客户端**: HTML, CSS, JavaScript (WebSocket API)
 - **PC 客户端**: Python, websockets, pyautogui, pynput
 - **中转服务器**: Python, FastAPI, uvicorn, websockets
 - **通信协议**: 基于云中转的 WebSocket
@@ -119,13 +136,13 @@ MobileAgentLivelink/
 - [x] 项目初始化
 - [x] PC 端 Python 服务
 - [x] 中转服务器实现
-- [x] Android 应用骨架
+- [x] Web客户端（单文件HTML）
 - [x] 本地通信测试（已验证）
+- [x] 安全验证机制（AUTH_TOKEN强制要求）
 
 **下一步**:
 - [x] 创建部署文档和脚本
-- [ ] 部署中转服务器到公网（参考 [部署指南](docs/DEPLOYMENT.md)）
-- [ ] Android 应用编译测试
+- [x] 部署中转服务器到公网（参考 [部署指南](docs/DEPLOYMENT.md)）
 - [ ] 端到端公网测试（参考 [测试用例](docs/QA_TEST_CASES.md)）
 
 ## 🤝 贡献指南

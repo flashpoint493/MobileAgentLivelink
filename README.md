@@ -52,9 +52,22 @@ cd pc-client
 pip install -r requirements.txt
 ```
 
-3. Configure settings (optional):
+3. Configure settings:
 ```bash
-# Edit config.py to customize relay server URL
+# Set environment variables (required for security):
+# AUTH_TOKEN: Pairing token (required) - prevents unauthorized access
+# RELAY_SERVER_URL: Relay server URL (default: ws://localhost:8765/ws)
+# DEVICE_ID: Device identifier (default: default-pc)
+
+# Example (Windows PowerShell):
+$env:AUTH_TOKEN="your_secret_token_here"
+$env:RELAY_SERVER_URL="ws://your-server-ip:8765/ws"
+$env:DEVICE_ID="my-pc-001"
+
+# Or create a .env file in pc-client/ directory:
+# AUTH_TOKEN=your_secret_token_here
+# RELAY_SERVER_URL=ws://your-server-ip:8765/ws
+# DEVICE_ID=my-pc-001
 ```
 
 4. Run the PC client:

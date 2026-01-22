@@ -150,7 +150,7 @@ HOST=0.0.0.0
 PORT=8765
 
 # 安全配置（可选）
-AUTH_TOKEN=<你的认证令牌>
+AUTH_TOKEN=x6826x
 EOF
 ```
 

@@ -10,6 +10,9 @@ load_dotenv()
 # 生产环境请设置环境变量: RELAY_SERVER_URL=ws://<你的服务器IP>:8765/ws
 RELAY_SERVER_URL = os.getenv("RELAY_SERVER_URL", "ws://localhost:8765/ws")
 DEVICE_ID = os.getenv("DEVICE_ID", "default-pc")
+# AUTH_TOKEN: 配对密钥，必填！用于安全配对，防止未授权访问
+# 设置方式: 环境变量 AUTH_TOKEN=your_secret_token
+# 警告: 未配置AUTH_TOKEN将导致无法配对
 AUTH_TOKEN = os.getenv("AUTH_TOKEN", "")
 
 # 项目根目录（用于读取上下文文件）

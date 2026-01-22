@@ -348,13 +348,13 @@
                         <input type="text" id="contextPaths" placeholder="docs/CONTEXT.md" value="docs/CONTEXT.md">
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-                        <button class="btn btn-primary" onclick="requestContext()">请求上下文</button>
-                        <button class="btn btn-primary" onclick="requestStatus()">获取PC状态</button>
-                        <button class="btn btn-primary" onclick="requestNewChat()">新对话/清空上下文</button>
+                        <button class="btn btn-primary" onclick="requestContext()" id="btnRequestContext">请求上下文</button>
+                        <button class="btn btn-primary" onclick="requestStatus()" id="btnRequestStatus">获取PC状态</button>
+                        <button class="btn btn-primary" onclick="requestNewChat()" id="btnRequestNewChat">新对话/清空上下文</button>
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn" onclick="setChatState(true)">标记面板已打开</button>
-                        <button class="btn" onclick="setChatState(false)">标记面板已关闭</button>
+                        <button class="btn" onclick="setChatState(true)" id="btnSetChatOpen">标记面板已打开</button>
+                        <button class="btn" onclick="setChatState(false)" id="btnSetChatClose">标记面板已关闭</button>
                     </div>
                 </div>
                 <div class="chat-container">
@@ -489,6 +489,7 @@
             document.getElementById('connectSection').classList.add('hidden');
             document.getElementById('pcListSection').classList.remove('hidden');
             listPCs();
+            updateButtonStates();
         }
 
         function handleMessage(event) {
@@ -558,6 +559,7 @@
             document.getElementById('connectSection').classList.remove('hidden');
             document.getElementById('pcListSection').classList.add('hidden');
             document.getElementById('chatSection').classList.add('hidden');
+            updateButtonStates();
         }
 
 
@@ -618,6 +620,34 @@
 
         }
 
+        function updateButtonStates() {
+            const isConnected = ws && ws.readyState === WebSocket.OPEN;
+            const isPaired = !!pairedPCId;
+            const buttonsEnabled = isConnected && isPaired;
+            
+            const buttons = [
+                'btnRequestContext',
+                'btnRequestStatus',
+                'btnRequestNewChat',
+                'btnSetChatOpen',
+                'btnSetChatClose'
+            ];
+            
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = !buttonsEnabled;
+                    if (!buttonsEnabled) {
+                        btn.style.opacity = '0.6';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                }
+            });
+        }
+
         function handlePairResult(data) {
             if (data.success) {
                 pairedPCId = data.pc_id;
@@ -627,10 +657,12 @@
                 document.getElementById('chatSection').classList.remove('hidden');
 
                 addMessage('system', `已成功配对到 PC: ${pairedPCId}`);
+                updateButtonStates();
             } else {
                 const reasonMap = {
-                    invalid_token: '配对失败: 密钥无效',
-                    pc_offline: '配对失败: PC未在线'
+                    invalid_token: '配对失败: 密钥无效，请检查配对密钥是否正确',
+                    pc_offline: '配对失败: PC未在线',
+                    pc_token_not_configured: '配对失败: PC端未配置AUTH_TOKEN，请先在PC端配置'
                 };
                 alert(reasonMap[data.reason] || '配对失败');
             }
@@ -645,8 +677,7 @@
                 return;
             }
 
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                alert('未连接到服务器');
+            if (!checkConnectionAndPairing()) {
                 return;
             }
 
@@ -738,17 +769,27 @@
             }
         }
 
-        function requestStatus() {
+        function checkConnectionAndPairing() {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                alert('未连接到服务器');
+                alert('未连接到服务器，请先连接');
+                return false;
+            }
+            if (!pairedPCId) {
+                alert('未配对到PC，请先选择并配对PC设备');
+                return false;
+            }
+            return true;
+        }
+
+        function requestStatus() {
+            if (!checkConnectionAndPairing()) {
                 return;
             }
             ws.send(JSON.stringify({ type: 'get_status' }));
         }
 
         function requestContext() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                alert('未连接到服务器');
+            if (!checkConnectionAndPairing()) {
                 return;
             }
             const requestId = Date.now();
@@ -763,8 +804,7 @@
 
 
         function requestNewChat() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                alert('未连接到服务器');
+            if (!checkConnectionAndPairing()) {
                 return;
             }
             const requestId = Date.now();
@@ -772,8 +812,7 @@
         }
 
         function setChatState(open) {
-            if (!ws || ws.readyState !== WebSocket.OPEN) {
-                alert('未连接到服务器');
+            if (!checkConnectionAndPairing()) {
                 return;
             }
             const requestId = Date.now();
@@ -813,6 +852,7 @@
         window.addEventListener('load', () => {
             loadSettings();
             loadHistory();
+            updateButtonStates();
         });
 
         function handleKeyPress(event) {
