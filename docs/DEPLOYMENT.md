@@ -226,36 +226,145 @@ asyncio.run(test())
 
 > 适用于已部署且使用 systemd 运行的场景。
 
-### 方式 A：使用 Git 更新（推荐）
+当你在本地仓库提交并推送代码后，需要在服务器上更新并重启服务。以下是三种更新方式：
+
+### 方式 A：使用自动化更新脚本（推荐）
+
+**最简单快捷的方式**，一键完成所有更新步骤：
 
 ```bash
+# 1. SSH 连接到服务器
 ssh root@<你的服务器IP>
+
+# 2. 进入项目目录
 cd /opt/mobileagentlivelink/MobileAgentLivelink
 
-git pull
-cd relay-server
-source venv/bin/activate
-pip install -r requirements.txt
+# 3. 确保更新脚本有执行权限
+chmod +x relay-server/update.sh
 
-sudo systemctl restart mobileagent-relay
-sudo systemctl status mobileagent-relay
+# 4. 运行更新脚本
+sudo relay-server/update.sh
 ```
 
-### 方式 B：使用 scp 覆盖更新
+脚本会自动执行以下操作：
+- ✅ 检查项目目录和服务状态
+- ✅ 使用 `git pull` 拉取最新代码
+- ✅ 更新 Python 依赖包
+- ✅ 重启 systemd 服务
+- ✅ 验证服务健康状态
+- ✅ 显示服务状态和日志查看命令
+
+**如果更新失败**，脚本会显示回滚命令，你可以手动执行回滚。
+
+### 方式 B：使用 Git 手动更新
+
+如果你需要更多控制，可以手动执行每个步骤：
 
 ```bash
-# 本地执行
-scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/
-
-# 服务器执行
+# 1. SSH 连接到服务器
 ssh root@<你的服务器IP>
-cd /opt/mobileagentlivelink/relay-server
+
+# 2. 进入项目目录
+cd /opt/mobileagentlivelink/MobileAgentLivelink
+
+# 3. 拉取最新代码
+git pull
+
+# 4. 进入服务目录并激活虚拟环境
+cd relay-server
+source venv/bin/activate
+
+# 5. 更新依赖（如果有 requirements.txt 变更）
+pip install -r requirements.txt
+
+# 6. 重启服务
+sudo systemctl restart mobileagent-relay
+
+# 7. 检查服务状态
+sudo systemctl status mobileagent-relay
+
+# 8. 验证服务健康（可选）
+curl http://localhost:8765/health
+```
+
+### 方式 C：使用 scp 覆盖更新
+
+如果服务器上没有 git 仓库，可以使用 scp 上传文件：
+
+```bash
+# 1. 在本地执行：上传 relay-server 目录
+scp -r relay-server root@<你的服务器IP>:/opt/mobileagentlivelink/MobileAgentLivelink/
+
+# 2. SSH 连接到服务器
+ssh root@<你的服务器IP>
+
+# 3. 进入服务目录
+cd /opt/mobileagentlivelink/MobileAgentLivelink/relay-server
+
+# 4. 激活虚拟环境并更新依赖
 source venv/bin/activate
 pip install -r requirements.txt
 
+# 5. 重启服务
 sudo systemctl restart mobileagent-relay
+
+# 6. 检查服务状态
 sudo systemctl status mobileagent-relay
 ```
+
+### 更新后验证
+
+无论使用哪种方式，更新后都应该验证服务是否正常运行：
+
+```bash
+# 1. 检查服务状态
+sudo systemctl status mobileagent-relay
+
+# 2. 检查端口监听
+ss -tlnp | grep 8765
+
+# 3. 测试健康检查接口
+curl http://localhost:8765/health
+
+# 4. 查看服务日志（如有问题）
+sudo journalctl -u mobileagent-relay -n 50 -f
+```
+
+### 回滚到之前的版本
+
+如果更新后出现问题，可以回滚到之前的版本：
+
+```bash
+# 1. 进入项目目录
+cd /opt/mobileagentlivelink/MobileAgentLivelink
+
+# 2. 查看提交历史
+git log --oneline -10
+
+# 3. 回滚到指定提交（替换 <commit-hash> 为之前的提交哈希）
+git checkout <commit-hash>
+
+# 4. 进入服务目录
+cd relay-server
+source venv/bin/activate
+
+# 5. 更新依赖（如果需要）
+pip install -r requirements.txt
+
+# 6. 重启服务
+sudo systemctl restart mobileagent-relay
+
+# 7. 验证服务
+sudo systemctl status mobileagent-relay
+```
+
+### 更新注意事项
+
+1. **备份重要数据**：更新前建议备份 `.env` 配置文件
+2. **检查依赖变更**：如果 `requirements.txt` 有变更，务必运行 `pip install -r requirements.txt`
+3. **服务重启**：代码更新后必须重启服务才能生效
+4. **验证功能**：更新后建议执行端到端测试，确保功能正常
+5. **查看日志**：如有问题，及时查看服务日志排查
 
 ## 客户端配置更新
 
