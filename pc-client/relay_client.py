@@ -15,7 +15,21 @@ class RelayClient:
         self.ws = None
         self.running = False
         self.last_message = None
-        self.project_root = Path(PROJECT_ROOT).resolve()
+        # 优先使用Cursor当前打开的项目路径，否则使用配置的PROJECT_ROOT
+        self.project_root = self._get_project_root()
+    
+    def _get_project_root(self) -> Path:
+        """获取项目根目录：优先使用Cursor当前工作区，否则使用配置的PROJECT_ROOT"""
+        # 尝试从Cursor获取当前工作区路径
+        workspace_path = self.cursor.get_workspace_path()
+        if workspace_path and workspace_path.exists():
+            print(f"[INFO] 使用Cursor当前工作区: {workspace_path}")
+            return workspace_path
+        
+        # 回退到配置的PROJECT_ROOT
+        fallback_root = Path(PROJECT_ROOT).resolve()
+        print(f"[INFO] 使用配置的项目根目录: {fallback_root}")
+        return fallback_root
     
     async def connect(self):
         """连接到中转服务器"""
@@ -142,8 +156,14 @@ class RelayClient:
                     await self._send_context_result(data.get("context_request"), message_id=data.get("message_id"))
                 
             elif msg_type == "get_status":
-                # 返回状态
+                # 返回状态，并更新项目根目录（Cursor可能切换了工作区）
                 status = self.cursor.get_status()
+                # 如果Cursor工作区路径可用，更新project_root
+                if status.get("workspace_path"):
+                    new_root = Path(status["workspace_path"])
+                    if new_root.exists() and new_root != self.project_root:
+                        print(f"[INFO] 检测到Cursor切换工作区: {new_root}")
+                        self.project_root = new_root
                 await self.send({
                     "type": "status",
                     **status,

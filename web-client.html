@@ -398,6 +398,7 @@
                 return;
             }
 
+            // 立即保存设置，确保持久化
             saveSettings();
 
             try {
@@ -849,9 +850,26 @@
         }
 
 
-        window.addEventListener('load', () => {
+        // 页面加载时立即加载设置（不等待load事件，确保尽早恢复）
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                loadSettings();
+                loadHistory();
+                updateButtonStates();
+            });
+        } else {
+            // DOM已经加载完成
             loadSettings();
             loadHistory();
+            updateButtonStates();
+        }
+
+        // 也监听load事件作为备用
+        window.addEventListener('load', () => {
+            // 确保设置已加载
+            if (!localStorage.getItem(STORAGE_KEYS.serverUrl)) {
+                loadSettings();
+            }
             updateButtonStates();
         });
 

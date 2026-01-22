@@ -1,6 +1,9 @@
 """Cursor IDE 控制器 - 通过 Windows API 模拟输入"""
 import time
 import ctypes
+import os
+import psutil
+from pathlib import Path
 import pyautogui
 import pygetwindow as gw
 from config import CURSOR_WINDOW_TITLE, INPUT_DELAY, NEW_CHAT_COMMAND
@@ -97,13 +100,55 @@ class CursorController:
         pyperclip.copy(text)
         pyautogui.hotkey('ctrl', 'v')
     
+    def get_workspace_path(self) -> Path | None:
+        """获取 Cursor 当前打开的工作区路径"""
+        window = self.find_cursor_window()
+        if not window:
+            return None
+        
+        try:
+            # 方法1: 从窗口进程获取工作目录
+            hwnd = window._hWnd
+            process_id = ctypes.c_ulong()
+            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(process_id))
+            
+            try:
+                process = psutil.Process(process_id.value)
+                cwd = process.cwd()
+                # Cursor的工作目录通常是项目根目录
+                if cwd and Path(cwd).exists():
+                    return Path(cwd).resolve()
+            except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
+                pass
+            
+            # 方法2: 从窗口标题解析（Cursor标题格式通常是 "项目名 - Cursor" 或包含路径）
+            title = window.title
+            if title and title != CURSOR_WINDOW_TITLE:
+                # 尝试从标题中提取路径信息
+                # 某些情况下标题可能包含路径
+                pass
+            
+            # 方法3: 尝试从Cursor的配置文件获取
+            # Cursor通常会在用户目录下存储工作区信息
+            app_data = os.getenv('APPDATA')
+            if app_data:
+                cursor_config = Path(app_data) / 'Cursor' / 'User' / 'globalStorage' / 'storage.json'
+                # 这里可以尝试解析配置文件，但比较复杂
+            
+            return None
+        except Exception as e:
+            print(f"[WARN] 获取工作区路径失败: {e}")
+            return None
+    
     def get_status(self) -> dict:
         """获取 Cursor 状态"""
         window = self.find_cursor_window()
+        workspace_path = self.get_workspace_path()
         return {
             "running": window is not None,
             "title": window.title if window else None,
             "minimized": window.isMinimized if window else None,
+            "workspace_path": str(workspace_path) if workspace_path else None,
         }
 
 
